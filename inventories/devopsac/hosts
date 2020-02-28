@@ -1,0 +1,4 @@
+MachineCible ansible_host=192.168.120.4 ansible_user=devops
+
+[wordpress]
+MachineCible
