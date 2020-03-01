@@ -131,13 +131,14 @@
             name: wordpress
             state: present
           when: mysql_new_root_pass.changed
-          
+
         - name: Create WordPress MySQL user
           mysql_user:
             name: wordpress
             host: localhost
             password: bananas
             priv: wordpress.*:ALL
+          when: mysql_new_root_pass.changed
 
         - name: Create wp-config
           template:
