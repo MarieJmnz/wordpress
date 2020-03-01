@@ -1,4 +1,4 @@
-marie_serv ansible_host=10.5.169.237 ansible_user=root
+MachineCible ansible_host=192.168.120.4 ansible_user=devops
 
-[wordpress]
-marie_serv
+[Wordpress]
+MachineCible

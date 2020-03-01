@@ -1,20 +1,20 @@
 ---
 
 - name: ping
-  hosts: wordpress
+  hosts: Wordpress
   become: yes
   tasks:
     - name: ping_machine_cible
       ping:
 
-# TOOLS
+#Outils
     - name: Install required tools
       apt:
         name:
           - unzip
         state: present
 
-# PHP
+#PHP
     - name: Add the ondrej PHP PPA
       apt_repository:
         repo: 'ppa:ondrej/php'
@@ -34,26 +34,21 @@
         name: apache2
         state: absent
 
-# MySQL
-    - name: Install MySQL
+# mysql
+    - name: Install Mysql
       package:
         name: "{{ item }}"
         state: present
       loop:
-        - mysql-server
         - python-mysqldb
-
-    - name: Create mysqld.cnf
-      template:
-        src: templates/mysql/mysqld.cnf.j2
-        dest: /etc/mysql/mysql.conf.d/mysqld.cnf
-      notify: restart mysql
+        - mysql-server
 
     - name: Generate new root password
       command: openssl rand -hex 7
       args:
         creates: /root/.my.cnf
       register: mysql_new_root_pass
+      notify: restart mysql
 
     - name: Remove anonymous users
       mysql_user:
@@ -90,6 +85,13 @@
         dest: /root/.my.cnf
       when: mysql_new_root_pass.changed
 
+    - name: Create mysqld.cnf
+      template:
+        src: templates/mysql/mysqld.cnf.j2
+        dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+      when: mysql_new_root_pass.changed
+      notify: restart mysql
+
     - name: Install nginx
       package:
         name: nginx
@@ -100,16 +102,23 @@
         name: nginx
         state: started
 
+    - name: Check PHP version
+      command: php --version
+      register: php_version
+    - set_fact:
+        fpm_sock: /run/php/php7.{{ php_version.stdout.split(" ")[1].split(".")[1] }}-fpm.sock
+      when: ansible_distribution == 'Ubuntu'
+
     - name: Create nginx config
       template:
         src: templates/nginx/default.j2
         dest: /etc/nginx/sites-available/default
       notify: restart nginx
 
-# WordPress
+      # WordPress
     - name: Unzip WordPress
       unarchive:
-        src: files/wordpress.zip
+        src: files/wordpress-5.3.2-fr_FR.zip
         dest: /tmp
         creates: /tmp/wordpress/wp-settings.php
 
@@ -122,7 +131,7 @@
       command: cp -a /tmp/wordpress/. /var/www/book.example.com
       args:
         creates: /var/www/book.example.com/wp-settings.php
-
+      # Creation de la base de donnee de wordpress
     - name: Create WordPress MySQL database
       mysql_db:
         name: wordpress
@@ -144,7 +153,7 @@
       command: mysql -u root wordpress -e "SELECT ID FROM wordpress.wp_users LIMIT 1;"
       register: db_exist
       ignore_errors: true
-      
+
     - name: Copy WordPress DB
       copy:
         src: files/wp-database.sql
