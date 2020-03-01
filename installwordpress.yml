@@ -52,17 +52,17 @@
         src: templates/mysql/mysqld.cnf.j2
         dest: /etc/mysql/mysql.conf.d/mysqld.cnf
 
-    - name: Create my.cnf
-      template:
-        src: templates/mysql/my.cnf.j2
-        dest: /root/.my.cnf
-      notify: restart mysql
-
     - name: Generate new root password
       command: openssl rand -hex 7
       args:
         creates: /root/.my.cnf
       register: mysql_new_root_pass
+
+    - name: Create my.cnf
+      template:
+        src: templates/mysql/my.cnf.j2
+        dest: /root/.my.cnf
+      notify: restart mysql
 
     - name: Remove anonymous users
       mysql_user:
