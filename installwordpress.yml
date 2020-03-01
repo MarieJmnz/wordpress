@@ -139,6 +139,7 @@
       mysql_db:
         name: wordpress
         state: present
+      when: mysql_new_root_pass.changed
 
     - name: Create WordPress MySQL user
       mysql_user:
