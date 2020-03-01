@@ -1,0 +1,4 @@
+marie_serv ansible_host=10.5.169.237 ansible_user=root
+
+[wordpress]
+marie_serv
