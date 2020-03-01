@@ -148,6 +148,7 @@
         host: localhost
         password: bananas
         priv: wordpress.*:ALL
+      when: mysql_new_root_pass.changed
 
     - name: Create wp-config
       template:
