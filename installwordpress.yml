@@ -154,17 +154,20 @@
       template:
         src: templates/wordpress/wp-config.php.j2
         dest: /var/www/book.example.com/wp-config.php
+      when: mysql_new_root_pass.changed
 
     - name: Does the database exist?
       command: mysql -u root wordpress -e "SELECT ID FROM wordpress.wp_users LIMIT 1;"
       register: db_exist
       ignore_errors: true
+      when: mysql_new_root_pass.changed
 
     - name: Copy WordPress DB
       copy:
         src: files/wp-database.sql
         dest: /tmp/wp-database.sql
       when: db_exist.rc > 0
+      when: mysql_new_root_pass.changed
 
     - name: Import WordPress DB
       mysql_db:
@@ -172,7 +175,8 @@
         state: import
         name: wordpress
       when: db_exist.rc > 0
-
+      when: mysql_new_root_pass.changed
+      
   handlers:
     - name: restart nginx
       service:
