@@ -13,6 +13,10 @@
         name:
           - unzip
         state: present
+#GNUPG
+    - name: Add GNUPG
+      apt:
+        name:
 
 #PHP
     - name: Add the ondrej PHP PPA
@@ -43,12 +47,17 @@
         - python-mysqldb
         - mysql-server
 
+    - name: Create mysqld.cnf
+      template:
+        src: templates/mysql/mysqld.cnf.j2
+        dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+      notify: restart mysql
+
     - name: Generate new root password
       command: openssl rand -hex 7
       args:
         creates: /root/.my.cnf
       register: mysql_new_root_pass
-      notify: restart mysql
 
     - name: Remove anonymous users
       mysql_user:
@@ -71,7 +80,7 @@
       mysql_user:
         name: root
         host: "{{ item }}"
-        password: "{{ mysql_new_root_pass.stdout }}"
+        password: "{{mysql_new_root_pass.stdout}}"
       loop:
         - "{{ ansible_hostname }}"
         - 127.0.0.1
@@ -84,13 +93,6 @@
         src: templates/mysql/my.cnf.j2
         dest: /root/.my.cnf
       when: mysql_new_root_pass.changed
-
-    - name: Create mysqld.cnf
-      template:
-        src: templates/mysql/mysqld.cnf.j2
-        dest: /etc/mysql/mysql.conf.d/mysqld.cnf
-      when: mysql_new_root_pass.changed
-      notify: restart mysql
 
     - name: Install nginx
       package:
