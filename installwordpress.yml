@@ -93,7 +93,6 @@
         - 127.0.0.1
         - ::1
         - localhost
-      when: mysql_new_root_pass.changed
 
     - name: Install nginx
       package:
@@ -118,7 +117,7 @@
         dest: /etc/nginx/sites-available/default
       notify: restart nginx
 
-      # WordPress
+# WordPress
     - name: Unzip WordPress
       unarchive:
         src: files/wordpress.zip
@@ -134,7 +133,8 @@
       command: cp -a /tmp/wordpress/. /var/www/book.example.com
       args:
         creates: /var/www/book.example.com/wp-settings.php
-      # Creation de la base de donnee de wordpress
+
+# Creation de la base de donnee de wordpress
     - name: Create WordPress MySQL database
       mysql_db:
         name: wordpress
