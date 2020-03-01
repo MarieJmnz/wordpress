@@ -51,7 +51,8 @@
       template:
         src: templates/mysql/mysqld.cnf.j2
         dest: /etc/mysql/mysql.conf.d/mysqld.cnf
-
+      notify: restart mysql
+      
     - name: Generate new root password
       command: openssl rand -hex 7
       args:
@@ -63,6 +64,7 @@
         src: templates/mysql/my.cnf.j2
         dest: /root/.my.cnf
       notify: restart mysql
+      when: mysql_new_root_pass.changed
 
     - name: Remove anonymous users
       mysql_user:
