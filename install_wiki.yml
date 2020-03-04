@@ -1,0 +1,188 @@
+---
+
+- name: ping
+  hosts: group_mediawiki
+  become: yes
+  tasks:
+    - name: ping MachineCible
+      ping:
+
+# TOOLS
+    - name: Install required tools
+      apt:
+        name:
+          - unzip
+        state: present
+
+# PHP
+    - name: Add the ondrej PHP PPA
+      apt_repository:
+        repo: 'ppa:ondrej/php'
+
+    - name: install PHP
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - php5.6
+        - php5.6-fpm
+        - php5.6-mysql
+        - php5.6-xml
+        - php5.6-curl
+        - php5.6-gd
+        - php5.6-intl
+        - php5.6-json
+        - php5.6-mbstring
+
+    - name: remove apache2
+      apt:
+        name: apache2
+        state: absent
+        purge: yes
+
+# MySQL
+    - name: install mysql
+      package:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - mysql-server
+        - python-mysqldb
+
+    - name: Create mysqld.cnf
+      template:
+        src: templates/mysql/mysqld.cnf.j2
+        dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+      notify: restart mysql
+
+    - name: Generate new root password
+      command: openssl rand -hex 7
+      args:
+        creates: /root/.my.conf
+      register: mysql_new_root_pass
+
+    - name: remove anonymous users
+      mysql_user:
+        name: ""
+        state: absent
+      when: mysql_new_root_pass.changed
+
+    - name: remove test database
+      mysql_db:
+        name: test
+        state: absent
+      when: mysql_new_root_pass.changed
+
+    - name: Output new root password
+      debug:
+        msg: "New root password is {{ mysql_new_root_pass.stdout }}"
+      when: mysql_new_root_pass.changed
+
+    - name: Update root password
+      mysql_user:
+        name: root
+        host: "{{ item }}"
+        password: "{{ mysql_new_root_pass.stdout }}"
+      loop:
+        - "{{ ansible_hostname }}"
+        - 127.0.0.1
+        - ::1
+        - localhost
+      when: mysql_new_root_pass.changed
+
+    - name: Create my.cnf
+      template:
+        src: templates/mysql/my.cnf.j2
+        dest: /root/.my.cnf
+
+#Nginx
+    - name: install Nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: start Nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Check PHP version
+      command: php --version
+      register: php_version
+    - set_fact:
+        fpm_sock: /run/php/php5.{{ php_version.stdout.split(" ")[1].split(".")[1] }}-fpm.sock
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: create nginx config
+      template:
+        src: templates/nginx/default.j2
+        dest: /etc/nginx/sites-available/default
+      notify: restart nginx
+
+# MediaWiki
+    - name: Create LIVR folder
+      file:
+        dest: /appli/wikidevops/LIVR
+        state: directory
+
+    - name: Unzip MediaWiki
+      unarchive:
+        src: files/md1_01.00.00_data.tar.gz
+        dest: /appli/wikidevops/LIVR
+        creates: /appli/wikidevops/LIVR/wiki_devops/maintenance/install.php
+
+    - name: Create root server folder
+      file:
+        dest: /appli/projects/md1/nginx
+        state: directory
+
+    - name: Copy MediaWiki files
+      command: cp -a /appli/wikidevops/LIVR/wiki_devops/. /appli/projects/md1/nginx
+      args:
+        creates: /appli/projects/md1/nginx/maintenance/install.php
+
+    - name: Create MediaWiki MySQL database
+      mysql_db:
+        name: wiki
+        state: present
+    - name: Create mediawiki MySQL user
+      mysql_user:
+        name: wiki
+        host: localhost
+        password: password
+        priv: wiki.*:ALL
+
+    - name: Create LocalSettings.php
+      template:
+        src: templates/wiki/LocalSettings.php.jinja
+        dest: /appli/projects/md1/nginx/LocalSettings.php
+
+    - name: Does the database exist?
+      command: mysql -u root wiki -e "SELECT ID FROM mysql.users LIMIT 1;"
+      register: db_exist
+      ignore_errors: true
+
+    - name: Copy MediaWiki DB
+      copy:
+        src: files/backup.sql
+        dest: /appli/wikidevops/LIVR/backup.sql
+      when: db_exist.rc > 0
+
+    - name: Import MediaWiki DB
+      mysql_db:
+        target: /appli/wikidevops/LIVR/backup.sql
+        state: import
+        name: mediawiki
+      when: db_exist.rc > 0
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: restart mysql
+      service:
+        name: mysql
+        state: restarted
