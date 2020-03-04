@@ -178,7 +178,7 @@
         state: import
         name: mediawiki
       when: db_exist.rc > 0
-
+      when: mysql_new_root_pass.changed
 
   handlers:
     - name: restart nginx
