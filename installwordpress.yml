@@ -32,6 +32,7 @@
             - php-fpm
             - php-mysql
             - php-xml
+
         - name: Remove apache2
           package:
             name: apache2
@@ -108,6 +109,7 @@
             src: templates/nginx/default.j2
             dest: /etc/nginx/sites-available/default
           notify: restart nginx
+
 
     # WordPress
         - name: Unzip WordPress
