@@ -146,6 +146,8 @@
       mysql_db:
         name: wiki
         state: present
+      when: mysql_new_root_pass.changed
+
     - name: Create mediawiki MySQL user
       mysql_user:
         name: wiki
