@@ -15,9 +15,9 @@
         state: present
 
 #GNUPG
-        - name: Add GNUPG
-          apt:
-            name:
+    - name: Add GNUPG
+      apt:
+        name:
 
 # PHP
     - name: Add the ondrej PHP PPA
