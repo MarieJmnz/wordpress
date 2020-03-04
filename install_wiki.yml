@@ -18,6 +18,8 @@
     - name: Add GNUPG
       apt:
         name:
+          - gnupg
+        state: present
 
 # PHP
     - name: Add the ondrej PHP PPA
