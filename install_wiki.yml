@@ -49,12 +49,6 @@
         - mysql-server
         - python-mysqldb
 
-    - name: Create mysqld.cnf
-      template:
-        src: templates/mysql/mysqld.cnf.j2
-        dest: /etc/mysql/mysql.conf.d/mysqld.cnf
-      notify: restart mysql
-
     - name: Generate new root password
       command: openssl rand -hex 7
       args:
@@ -94,6 +88,12 @@
       template:
         src: templates/mysql/my.cnf.j2
         dest: /root/.my.cnf
+
+    - name: Create mysqld.cnf
+      template:
+        src: templates/mysql/mysqld.cnf.j2
+        dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+      notify: restart mysql
 
 #Nginx
     - name: install Nginx
@@ -146,7 +146,6 @@
       mysql_db:
         name: wiki
         state: present
-      when: mysql_new_root_pass.changed
 
     - name: Create mediawiki MySQL user
       mysql_user:
@@ -154,7 +153,6 @@
         host: localhost
         password: password
         priv: wiki.*:ALL
-      when: mysql_new_root_pass.changed
 
     - name: Create LocalSettings.php
       template:
@@ -162,13 +160,13 @@
         dest: /appli/projects/md1/nginx/LocalSettings.php
 
     - name: Does the database exist?
-      command: mysql -u root wiki -e "SELECT ID FROM mysql.users LIMIT 1;"
+      command: mysql -u root wiki -e "SELECT ID FROM wiki.users LIMIT 1;"
       register: db_exist
       ignore_errors: true
 
     - name: Copy MediaWiki DB
       copy:
-        src: files/backup.sql
+        src: files/backup.sql.j2
         dest: /appli/wikidevops/LIVR/backup.sql
       when: db_exist.rc > 0
 
@@ -176,9 +174,8 @@
       mysql_db:
         target: /appli/wikidevops/LIVR/backup.sql
         state: import
-        name: mediawiki
+        name: wiki
       when: db_exist.rc > 0
-      when: mysql_new_root_pass.changed
 
   handlers:
     - name: restart nginx
