@@ -154,6 +154,7 @@
         host: localhost
         password: password
         priv: wiki.*:ALL
+      when: mysql_new_root_pass.changed
 
     - name: Create LocalSettings.php
       template:
