@@ -54,6 +54,7 @@
       args:
         creates: /root/.my.cnf
       register: mysql_new_root_pass
+      when: mysql_new_root_pass.changed
 
     - name: remove anonymous users
       mysql_user:
