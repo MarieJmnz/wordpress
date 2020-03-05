@@ -171,6 +171,8 @@
       register: db_exist
       ignore_errors: true
 
+
+
     - name: Copy MediaWiki DB
       copy:
         src: files/backup.sql.j2
